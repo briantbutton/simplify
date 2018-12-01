@@ -1,0 +1,17 @@
+{
+  "name": "simplify",
+  "version": "0.2.3",
+  "description": "A filter expression simplifier",
+  "keywords": [
+    "imply", "code", "challenge"
+  ],
+  "author": {
+    "name": "You",
+    "url": "https://you.com/"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "chai": "~3.5.0",
+    "mocha": "~3.2.0"
+  }
+}
