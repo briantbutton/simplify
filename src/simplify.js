@@ -1,5 +1,28 @@
-function simplify(filter) {
-  return { type: 'false' }; // This can't be right...
-}
+//  SIMPLIFY  SIMPLIFY  SIMPLIFY  SIMPLIFY  SIMPLIFY  SIMPLIFY 
+//
+// simplify = require("./Webs/misc/imply/simplify/src/simplify.js")
+// ./Webs/misc/imply/simplify/test/basic.js
+// 
+// 
+module.exports          = (function(){
 
-module.exports = simplify;
+  const Models          = require('./models'),
+        In              = Models.In,
+        And             = Models.And,
+        Or              = Models.Or,
+        Parser          = require('./parser'),
+        parser          = new Parser(In,And,Or);
+
+  return simplify;
+
+ // return simplify;
+
+  function simplify ( filter ) {
+    
+	  const model         = parser.parse(filter);
+
+	  model.reduce();
+
+	  return model.toFilter();
+  }
+})()
