@@ -2,7 +2,6 @@
 //
 module.exports = (function(){
 
-
   // * = * - * = * - * = * - * = * - * = * - * = * - * 
   //  BOOLEAN MODELS  BOOLEAN MODELS  BOOLEAN MODELS 
 	// And and Or are very similar
@@ -20,11 +19,17 @@ module.exports = (function(){
   	    dissolved        = false,
   	    childFilter, myFilters;
   	if ( !this.reduced() ) {
+
+  		// This loop does one child change at a time (inner loop)
+  		// After each change, it grooms the filters array and starts again from the beginning
+  		// When nothing changes, it exits
       while ( changed ) {
         changed          = false;
         myFilters        = this.filters();
         let len          = myFilters.length,
             index        = -1;
+
+        // This loops until there is one change or we finish all children
         while ( !changed && len-1>index++ ) {
           childFilter    = myFilters[index];
           reduceChild(index);
@@ -116,6 +121,7 @@ module.exports = (function(){
 
   // * = * - * = * - * = * - * = * - * = * - * = * - * 
   //   IN/IS MODELS   IN/IS MODELS   IN/IS MODELS  
+  // 
   // 'Is' is just a special case of 'In' and does not need a separate constructor
   function In ( attr , vals ) {
     var valueObj         = {};
@@ -179,7 +185,7 @@ module.exports = (function(){
   		return compatible
   	}
   };
-  // Final step delivers a couple last touch simplifications
+  // Final step delivers a couple last-touch simplifications
   In.prototype.toFilter  = function ( ) {
   	var keys             = this.keys();
   	if(keys.length){

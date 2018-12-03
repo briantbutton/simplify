@@ -1,9 +1,11 @@
 //  SIMPLIFY  SIMPLIFY  SIMPLIFY  SIMPLIFY  SIMPLIFY  SIMPLIFY 
 //
-// simplify = require("./Webs/misc/imply/simplify/src/simplify.js")
-// ./Webs/misc/imply/simplify/test/basic.js
+// The filters are parsed into three models (two, actually) according to 'type'
+// The parser performs checking for format errors
+// The models simplify on command (".reduce()")
+// And then spit out filters in the original format, on command
 // 
-// 
+
 module.exports          = (function(){
 
   const Models          = require('./models'),
@@ -15,8 +17,6 @@ module.exports          = (function(){
 
   return simplify;
 
- // return simplify;
-
   function simplify ( filter ) {
     
 	  const model         = parser.parse(filter);
@@ -26,3 +26,6 @@ module.exports          = (function(){
 	  return model.toFilter();
   }
 })()
+
+// simplify = require("./Webs/misc/imply/simplify/src/simplify.js")
+// ./Webs/misc/imply/simplify/test/basic.js

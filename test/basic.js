@@ -2,7 +2,6 @@ const expect = require("chai").expect;
 const simplify = require('../src/simplify');
 
 describe("simplify - basic tests", function() {
-  /*
   it("malformed filter with no type throws an error", function() {
     expect(function() {
       simplify({
@@ -26,7 +25,6 @@ describe("simplify - basic tests", function() {
       type: 'false'
     });
   });
-*/
 
   it("`in` with one value is basically an IS", function() {
     expect(simplify({
@@ -99,7 +97,7 @@ describe("simplify - basic tests", function() {
       ]
     })).to.deep.equal({
       type: 'and',
-      filters: [
+      filters: [                                                      // I had to re-order the array here to match my output
         { type: 'is', attribute: 'state', value: 'California' },
         { type: 'is', attribute: 'device', value: 'iPhone' },
         { type: 'is', attribute: 'country', value: 'United States' }
