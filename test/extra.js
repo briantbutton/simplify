@@ -124,7 +124,7 @@ describe("simplify - extra tests", function() {
     });
   });
 
-  it("A false in an 'and' propogates upward", function() {
+  it("A 'false' in an 'and' propogates upward", function() {
     expect(simplify({
       type: 'and',
       filters: [
@@ -147,7 +147,7 @@ describe("simplify - extra tests", function() {
     });
   });
 
-  it("A calculated false in an 'and' propogates upward", function() {
+  it("A calculated 'false' in an 'and' propogates upward", function() {
     expect(simplify({
       type: 'and',
       filters: [
@@ -171,7 +171,7 @@ describe("simplify - extra tests", function() {
     });
   });
 
-  it("A calculated false in an 'or' vanishes", function() {
+  it("A calculated 'false' in an 'or' vanishes", function() {
     expect(simplify({
       type: 'or',
       filters: [
@@ -195,9 +195,9 @@ describe("simplify - extra tests", function() {
     });
   });
 
-  it("A false in an or vanishes", function() {
+  it("A 'true' in an 'and' vanishes", function() {
     expect(simplify({
-      type: 'or',
+      type: 'and',
       filters: [
         {
           type: 'and',
@@ -207,15 +207,12 @@ describe("simplify - extra tests", function() {
           ]
         },
         {
-          type: 'and',
-          filters: [
-            { type: 'in',  attribute: 'stuff',    values: ["alpha","delta"] },
-            { type: 'in',  attribute: 'stuff',    values: ["bravo"] }
-          ]
+          type: 'true'
         }
       ]
     })).to.deep.equal({
       type: 'in',  attribute: 'nonsense', values: ["alpha","charlie"] 
     });
   });
+
 });

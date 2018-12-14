@@ -9,16 +9,11 @@ module.exports = (function(){
 	// 'And' and 'Or' are variations of Bool
   function Bool ( ) { } ;
 
-  // This complicated loop iterates around the possible reductions until there are no more
-  // It notes if there were reductions
-  // It does not reduce twice
-  // 
-  // Parameters (if not a top-level call)
-  // allFilters:  The parents filters, includes this one and the siblings
-  // ix: The index of this filter in allFilters
-  // union:  true if parent is an "or"
-  // 
-  // For a top-level call no parameters are used
+  // If not a top-level call, parameters describe the parent Bool
+  // If a top-level call there is no parent Bool and parameters are absent
+  //   ~ allFilters:  The parents filters, includes this one and the siblings
+  //   ~ ix:          The index of this filter in allFilters
+  //   ~ union:       True if parent is an "or"
   // 
   Bool.prototype.reduce  = function ( allFilters , ix , union ) {
   	var me               = this,
@@ -26,6 +21,10 @@ module.exports = (function(){
   	    changed          = true,
   	    dissolved        = false,
   	    childFilter, myFilters;
+
+    // This complicated loop iterates around the possible reductions until there are no more
+    // It notes if there were reductions
+    // It does not reduce twice (performance optimization)
   	if ( !this.reduced() ) {
 
   		// This loop does one child change at a time (inner loop)
@@ -56,9 +55,13 @@ module.exports = (function(){
       noteChange(childFilter.reduce(myFilters,index,me.union()))
   	};
   	// Acquires 'like' child filters and/and or or/or
-  	function acquireCompatibleChild(index){
+  	function acquireCompatibleChild(childIndex){
       if ( !changed && me.isOne(childFilter) ) {
-      	noteChange(me.acquire(myFilters,index))
+        let childBool    = myFilters [ childIndex ] ,
+            childFilters = childBool.filters();
+        myFilters.splice(childIndex,1);
+        childFilters.forEach(filter=>myFilters.unshift(filter));
+        noteChange(true)
       }
   	};
   	// Dissolves a boolean filter with only one subordinate filter
@@ -79,15 +82,7 @@ module.exports = (function(){
       everChanged        = everChanged || newVal
   	}
   };
-  Bool.prototype.acquire = function ( myFilters , filterIx ) {
-  	var otherAnd         = myFilters [ filterIx ] ,
-  	    otherFilters     = otherAnd.filters();
-  	myFilters.splice(filterIx,1);
-  	otherFilters.forEach(filter=>myFilters.unshift(filter));
-  	return true
-  };
   // This function also performs a last bit of simplification
-  // This is the simplest way to handle a couple corner cases
   Bool.prototype.toFilter= function ( ) {
   	var filters          = this.filters();
   	if ( filters.length ) {
@@ -141,22 +136,17 @@ module.exports = (function(){
   In.prototype.merge     = function ( union , otherIns ) {
     var allKeysObj       = {},
         inCount          = otherIns.length+1,
-        threshold        = union?1:inCount,
-        finalKeys;
+        threshold        = union?1:inCount;
     countKeys(this);
     otherIns.forEach(countKeys);
-    finalKeys            = Object.keys(allKeysObj).filter(k=>allKeysObj[k]>=threshold);
-    return finalKeys;
+    return Object.keys(allKeysObj).filter(k=>allKeysObj[k]>=threshold)
 
     function countKeys ( me ) {
       Object.keys(me.valueObj()).forEach(increment)
     };
     function increment(key){
-      if(allKeysObj[key]){
-        allKeysObj[key]++
-      }else{
-        allKeysObj[key]  = 1
-      }
+      if(!allKeysObj[key]){allKeysObj[key]=0}
+      allKeysObj[key]++
     }
   };
   // Creates a new 'In' that is the sum of itself and some others
@@ -195,7 +185,7 @@ module.exports = (function(){
   // Final step delivers a couple last-touch simplifications
   In.prototype.toFilter  = function ( ) {
     var keys             = Object.keys(this.valueObj());
-    if(keys.length){
+    if ( keys.length ) {
       if(keys.length>1){
         return { type : "in" , attribute : this.attribute() , values : keys }
       }else{
