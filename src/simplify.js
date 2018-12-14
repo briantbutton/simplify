@@ -12,8 +12,10 @@ module.exports          = (function(){
         In              = Models.In,
         And             = Models.And,
         Or              = Models.Or,
+        Yes             = Models.Yes,
+        No              = Models.No,
         Parser          = require('./parser'),
-        parser          = new Parser(In,And,Or);
+        parser          = new Parser(In,And,Or,Yes,No);
 
   return simplify;
 

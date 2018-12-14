@@ -3,6 +3,22 @@ const simplify = require('../src/simplify');
 
 describe("simplify - extra tests", function() {
 
+  it("True matches true", function() {
+    expect(simplify({
+      type: 'true'
+    })).to.deep.equal({
+      type: 'true'
+    });
+  });
+
+  it("False matches false", function() {
+    expect(simplify({
+      type: 'false'
+    })).to.deep.equal({
+      type: 'false'
+    });
+  });
+
   it("Complex 'or' assembly is simplified, according to attribute", function() {
     expect(simplify({
       type: 'or',
@@ -105,6 +121,101 @@ describe("simplify - extra tests", function() {
       ]
     })).to.deep.equal({
       type: 'false'
+    });
+  });
+
+  it("A false in an 'and' propogates upward", function() {
+    expect(simplify({
+      type: 'and',
+      filters: [
+        {
+          type: 'and',
+          filters: [
+            { type: 'in',  attribute: 'nonsense', values: ["alpha","bravo","charlie"] },
+            { type: 'in',  attribute: 'nonsense', values: ["alpha","charlie"] }
+          ]
+        },
+        {
+          type: 'and',
+          filters: [
+            { type: 'false' }
+          ]
+        }
+      ]
+    })).to.deep.equal({
+      type: 'false'
+    });
+  });
+
+  it("A calculated false in an 'and' propogates upward", function() {
+    expect(simplify({
+      type: 'and',
+      filters: [
+        {
+          type: 'and',
+          filters: [
+            { type: 'in',  attribute: 'nonsense', values: ["alpha","bravo","charlie"] },
+            { type: 'in',  attribute: 'nonsense', values: ["alpha","charlie"] }
+          ]
+        },
+        {
+          type: 'and',
+          filters: [
+            { type: 'in',  attribute: 'stuff',    values: ["alpha","delta"] },
+            { type: 'in',  attribute: 'stuff',    values: ["bravo"] }
+          ]
+        }
+      ]
+    })).to.deep.equal({
+      type: 'false'
+    });
+  });
+
+  it("A calculated false in an 'or' vanishes", function() {
+    expect(simplify({
+      type: 'or',
+      filters: [
+        {
+          type: 'and',
+          filters: [
+            { type: 'in',  attribute: 'nonsense', values: ["alpha","bravo","charlie"] },
+            { type: 'in',  attribute: 'nonsense', values: ["alpha","charlie"] }
+          ]
+        },
+        {
+          type: 'and',
+          filters: [
+            { type: 'in',  attribute: 'stuff',    values: ["alpha","delta"] },
+            { type: 'in',  attribute: 'stuff',    values: ["bravo"] }
+          ]
+        }
+      ]
+    })).to.deep.equal({
+      type: 'in',  attribute: 'nonsense', values: ["alpha","charlie"] 
+    });
+  });
+
+  it("A false in an or vanishes", function() {
+    expect(simplify({
+      type: 'or',
+      filters: [
+        {
+          type: 'and',
+          filters: [
+            { type: 'in',  attribute: 'nonsense', values: ["alpha","bravo","charlie"] },
+            { type: 'in',  attribute: 'nonsense', values: ["alpha","charlie"] }
+          ]
+        },
+        {
+          type: 'and',
+          filters: [
+            { type: 'in',  attribute: 'stuff',    values: ["alpha","delta"] },
+            { type: 'in',  attribute: 'stuff',    values: ["bravo"] }
+          ]
+        }
+      ]
+    })).to.deep.equal({
+      type: 'in',  attribute: 'nonsense', values: ["alpha","charlie"] 
     });
   });
 });

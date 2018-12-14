@@ -4,15 +4,17 @@ module.exports = (function(){
 
 	return Parser;
 
-	function Parser(In,And,Or){
+	function Parser(In,And,Or,Yes,No){
     this.parse           = function (objIn) {
     	return parse(objIn)
     };
     function parse ( objIn ) {
-			if ( objIn.type==="in" )  { return parseIn(objIn) }
-			if ( objIn.type==="is" )  { return parseIs(objIn) }
-			if ( objIn.type==="and" ) { return parseAnd(objIn) }
-			if ( objIn.type==="or" )  { return parseOr(objIn) }
+			if ( objIn.type==="true" )  { return new Yes() }
+			if ( objIn.type==="false" ) { return new No() }
+			if ( objIn.type==="in" )    { return parseIn(objIn) }
+			if ( objIn.type==="is" )    { return parseIs(objIn) }
+			if ( objIn.type==="and" )   { return parseAnd(objIn) }
+			if ( objIn.type==="or" )    { return parseOr(objIn) }
 
 			if ( typeof objIn.type==="string" ) {
 				throw new Error("[Parser] Unrecognized type tag '"+objIn.type+"'")

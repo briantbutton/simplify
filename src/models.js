@@ -12,6 +12,14 @@ module.exports = (function(){
   // This complicated loop iterates around the possible reductions until there are no more
   // It notes if there were reductions
   // It does not reduce twice
+  // 
+  // Parameters (if not a top-level call)
+  // allFilters:  The parents filters, includes this one and the siblings
+  // ix: The index of this filter in allFilters
+  // union:  true if parent is an "or"
+  // 
+  // For a top-level call no parameters are used
+  // 
   Bool.prototype.reduce  = function ( allFilters , ix , union ) {
   	var me               = this,
   	    everChanged      = false,
@@ -129,46 +137,45 @@ module.exports = (function(){
     this.attribute       = () => attr;
     this.valueObj        = () => valueObj;
   }
-  In.prototype.keys      = function ( ) {
-  	return Object.keys(this.valueObj())
-  };
-  In.prototype.similar   = function ( otherIn ) {
-  	return otherIn.attribute() === this.attribute()
-  };
   // Receives a set of Ins and returns a merged list of all keys using union or intersection
   In.prototype.merge     = function ( union , otherIns ) {
-  	var allKeysObj       = {},
-  	    inCount          = otherIns.length+1,
-  	    threshold        = union?1:inCount,
-  	    finalKeys;
-  	countKeys(this);
-  	otherIns.forEach(countKeys);
-  	finalKeys            = Object.keys(allKeysObj).filter(k=>allKeysObj[k]>=threshold);
-  	return finalKeys;
+    var allKeysObj       = {},
+        inCount          = otherIns.length+1,
+        threshold        = union?1:inCount,
+        finalKeys;
+    countKeys(this);
+    otherIns.forEach(countKeys);
+    finalKeys            = Object.keys(allKeysObj).filter(k=>allKeysObj[k]>=threshold);
+    return finalKeys;
 
     function countKeys ( me ) {
-      me.keys().forEach(increment)
+      Object.keys(me.valueObj()).forEach(increment)
     };
-  	function increment(key){
-  		if(allKeysObj[key]){
-  			allKeysObj[key]++
-  		}else{
-  			allKeysObj[key]=1
-  		}
-  	}
+    function increment(key){
+      if(allKeysObj[key]){
+        allKeysObj[key]++
+      }else{
+        allKeysObj[key]  = 1
+      }
+    }
   };
   // Creates a new 'In' that is the sum of itself and some others
   In.prototype.merged    = function ( union , otherIns ) {
-    return new In ( this.attribute() , this.merge(union,otherIns) )
+    var mergedValues     = this.merge(union,otherIns);
+    if ( mergedValues.length ) {
+      return new In ( this.attribute() , mergedValues )
+    }else{
+      return new No ( )
+    }
   };
   // This reduce looks at and may manipulate sibling filters
   // Thats OK because the parent (a boolean) will start over fresh with the new list
   In.prototype.reduce    = function ( allFilters , ix , union ) {
-  	var me               = this,
-  	    compatibleIXs    = [],
-  	    reduced          = false;
-  	if ( allFilters  ) {
-  		let compatible     = allFilters.filter(findCompatible)
+    var me               = this,
+        compatibleIXs    = [],
+        reduced          = false;
+    if ( allFilters  ) {
+      let compatible     = allFilters.filter(findCompatible)
       if ( compatible.length ) {
         compatibleIXs.forEach(ix=>allFilters[ix]=null);
         allFilters[ix]     = me.merged(union,compatible);
@@ -177,31 +184,71 @@ module.exports = (function(){
     }
     return reduced;
 
-  	function findCompatible ( filter , filterIx ) {
-  		let compatible     = false;
-  		if ( isIn(filter) && me.similar(filter) && filter!==me ) {
-  			compatible       = Boolean ( compatibleIXs.push(filterIx) )
-  		}
-  		return compatible
-  	}
+    function findCompatible ( filter , filterIx ) {
+      let compatible     = false;
+      if ( isIn(filter) && filter.attribute() === me.attribute() && filter!==me ) {
+        compatible       = Boolean ( compatibleIXs.push(filterIx) )
+      }
+      return compatible
+    }
   };
   // Final step delivers a couple last-touch simplifications
   In.prototype.toFilter  = function ( ) {
-  	var keys             = this.keys();
-  	if(keys.length){
-  		if(keys.length>1){
+    var keys             = Object.keys(this.valueObj());
+    if(keys.length){
+      if(keys.length>1){
         return { type : "in" , attribute : this.attribute() , values : keys }
-  		}else{
+      }else{
         return { type : "is" , attribute : this.attribute() , value : keys[0] }
-  		}
-  	}else{
-  		return { type : "false" }
-  	}
+      }
+    }else{
+      return { type : "false" }
+    }
   };
   //   IN/IS MODELS   IN/IS MODELS   IN/IS MODELS  
   // * = * - * = * - * = * - * = * - * = * - * = * - * 
 
-	return { And , Or , In } ;
+  // * = * - * = * - * = * - * = * - * = * - * = * - * 
+  //   YES/NO MODELS   YES/NO MODELS   YES/NO MODELS  
+  // 
+  // These are the models for "true" and "false"
+  // 
+  function Yes ( ) { 
+    this.reduce          = YesNoReduce(true);
+    this.toFilter        = function ( ) { return { type : "true" } }
+  };
+  function No  ( ) { 
+    this.reduce          = YesNoReduce(false);
+    this.toFilter        = function ( ) { return { type : "false" } }
+  };
+
+  // A true or false, either vanishes or controls the outcome, depending on
+  // whether the parent is and "and" or an "or"
+  // This function creates a reduce function that behaves appropriately
+  // 
+  function YesNoReduce (value) {
+    return function ( allFilters , ix , union ) {
+      var reduced        = false;
+      if ( allFilters ) {
+        if ( union === !value ) {
+          allFilters[ix] = null;
+          reduced        = true
+        }else{
+          if ( allFilters.length > 1 ) {
+            allFilters.forEach(function(filter,index){
+              if(index!==ix){allFilters[index]=null}
+            });
+            reduced      = true
+          }
+        }
+      }
+      return reduced
+    }
+  };
+  //   YES/NO MODELS   YES/NO MODELS   YES/NO MODELS  
+  // * = * - * = * - * = * - * = * - * = * - * = * - * 
+
+	return { And , Or , In , Yes , No } ;
 
 
   function isAnd(filt){
@@ -214,7 +261,7 @@ module.exports = (function(){
   	return typeof filt === "object" && filt!=null && filt.constructor===In
   };
   function isFilter(filt){
-  	return typeof filt === "object" && filt!=null && ( filt.constructor===In || filt.constructor===Or || filt.constructor===And )
+  	return typeof filt === "object" && filt!=null && ( filt.constructor===In || filt.constructor===Or || filt.constructor===And || filt.constructor===Yes || filt.constructor===No )
   };
 
 })()
