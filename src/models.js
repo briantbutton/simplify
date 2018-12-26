@@ -18,15 +18,15 @@ module.exports = (function(){
   Bool.prototype.reduce   = function ( parentFilters , ix , union ) {
     var me                = this,
         everChanged       = false,
-        changed           = true,
-        dissolved         = false, myFilters;
+        changed           = true, myFilters;
 
     // This complicated loop iterates around the possible reductions until there are no more
     // It notes if there were reductions
     // It does not reduce twice (performance optimization)
     if ( !this.reduced() ) {
 
-      // This loop does one child change at a time (inner loop)
+      // Outer Loop
+      // Makes one simplification at a time (inner loop)
       // After each change, it grooms the filters array and starts again from the beginning
       // When nothing changes, it exits
       while ( changed ) {
@@ -41,8 +41,8 @@ module.exports = (function(){
           acquireCompatibleChild(myFilters, index);
         }
         skimNulls(myFilters);
-        dissolveSingleFilterBoolean(this.filters());                           // If this list is down to one filter -> further simplification
-        this.wasReduced();
+        if ( notTopLevel() ) { dissolveSingleFilterBoolean(this.filters()) }   // If this list is down to one filter . . . perform further simplification
+        this.setReduced()
       }
     }
     return everChanged;
@@ -66,11 +66,11 @@ module.exports = (function(){
         noteChange()
       }
     };
-    // Dissolves a boolean filter with only one subordinate filter
-    function dissolveSingleFilterBoolean(allSiblings){
-      if ( parentFilters && allSiblings.length===1 && !dissolved ) {           // Only if this is NOT top level
-        parentFilters[ix] = allSiblings[0];                                    // Sticks my only filter into the into parents list
-        dissolved         = true;
+    // Dissolves a boolean filter with only one subordinate filter (possibly after other reductions)
+    // Takes no action with a top-level call
+    function dissolveSingleFilterBoolean(remainSiblings){
+      if ( remainSiblings.length===1 ) {
+        parentFilters[ix] = remainSiblings.pop();                              // Sticks my only filter into the into parents list
         noteChange()
       }
     };
@@ -82,7 +82,10 @@ module.exports = (function(){
     function noteChange(){
       changed             = true;
       everChanged         = true
-    }
+    };
+    function notTopLevel(){
+      return typeof parentFilters === "object" && parentFilters.constructor === Array
+    };
   };
   // This function also performs a last bit of simplification
   Bool.prototype.toFilter = function ( ) {
@@ -102,8 +105,8 @@ module.exports = (function(){
     var reduced           = false;
     this.filters          = () => filters;
     this.setFilters       = f  => filters=f;
-    this.wasReduced       = () => reduced=true;
     this.reduced          = () => reduced;
+    this.setReduced       = () => reduced=true;
     this.union            = () => false;
     this.myType           = () => "and";
     this.isOne            = isAnd
@@ -114,8 +117,8 @@ module.exports = (function(){
     var reduced           = false;
     this.filters          = () => filters;
     this.setFilters       = f  => filters=f;
-    this.wasReduced       = () => reduced=true;
     this.reduced          = () => reduced;
+    this.setReduced       = () => reduced=true;
     this.union            = () => true;
     this.myType           = () => "or";
     this.isOne            = isOr
@@ -216,7 +219,7 @@ module.exports = (function(){
     this.toFilter         = function ( ) { return { type : "false" } }
   };
 
-  // A true or false, either vanishes or controls the outcome, depending on
+  // A true or false either vanishes or controls the outcome, depending on
   // whether the parent is and "and" or an "or"
   // This function creates a reduce function that behaves appropriately
   function YesNoReduce (value) {
