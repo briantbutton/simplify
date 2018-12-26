@@ -35,6 +35,7 @@ module.exports = (function(){
         let len           = myFilters.length,
             index         = -1;
 
+        // Inner Loop
         // This iterates until there is one change or we finish all children
         while ( !changed && len-1>index++ ) {
           reduceChild(myFilters, index);
@@ -163,29 +164,29 @@ module.exports = (function(){
       return new No ( )
     }
   };
-  // This reduce looks at and may manipulate sibling filters
-  // Thats OK because the parent (a boolean) will start over fresh with the new list
+  // This reduce looks at and may remove sibling filters
+  // Thats OK because the parent will start over fresh with the new list
   In.prototype.reduce     = function ( parentFilters , ix , union ) {
     var me                = this,
-        compatibleIXs     = [],
         reduced           = false;
     if ( parentFilters  ) {
-      let compatible      = parentFilters.filter(findCompatible);              // This call has a SIDE-EFFECT of filling 'compatibleIXs';   *sigh* It seemed expeditious
-      if ( compatible.length ) {
-        compatibleIXs.forEach(ix=>parentFilters[ix]=null);                     // Remove compatible filters from the parent filter list
+      let compatibleIXs   = findCompatibleIXs(me,parentFilters);
+      if ( compatibleIXs.length ) {
+        let compatible    = compatibleIXs.map(i=>parentFilters[i]);
         parentFilters[ix] = me.merged(union,compatible);                       // Merge them with *this* filter, put result in *this* slot
+        compatibleIXs.forEach(ix=>parentFilters[ix]=null);                     // Remove compatible filters from the parent filter list
         reduced           = true
       }
     }
     return reduced;
 
-    // A "compatible" filter is another 'In' with the same 'attribute' field but is not me
-    function findCompatible ( filter , filterIx ) {
-      let compatible      = false;
-      if ( isIn(filter) && filter.attribute() === me.attribute() && filter!==me ) {
-        compatibleIXs.push(filterIx);
-        compatible        = true
-      }
+    function findCompatibleIXs ( me , parentFilters ) {
+      var compatible      = [];
+      parentFilters.forEach(function(filter,ix){
+        if ( isIn(filter) && filter.attribute() === me.attribute() && filter!==me ) {
+          compatible.push(ix)
+        }
+      });
       return compatible
     }
   };
